@@ -4,6 +4,7 @@ using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
 using GothmogBot;
+using GothmogBot.Database;
 using GothmogBot.Discord;
 using GothmogBot.Pairing;
 using GothmogBot.Pairing.OAuth;
@@ -37,7 +38,7 @@ builder.Services
 	.Bind(configuration.GetSection(DiscordOAuthOptions.SectionName))
 	.Validate(o => !string.IsNullOrEmpty(o.ClientId), "ClientId must have a value.")
 	.Validate(o => !string.IsNullOrEmpty(o.ClientSecret), "ClientSecret must have a value.")
-	.Validate(o =>  !string.IsNullOrEmpty(o.RedirectUrl), "RedirectUrl must have a value.");
+	.Validate(o => !string.IsNullOrEmpty(o.RedirectUrl), "RedirectUrl must have a value.");
 
 var stratzOptions = configuration
 	.GetSection(StratzOptions.SectionName)
@@ -66,7 +67,8 @@ Log.Logger = loggerConfiguration.CreateLogger();
 
 // Add Discord Services
 #pragma warning disable CA2000
-builder.Services.AddSingleton(new DiscordSocketClient(new DiscordSocketConfig { GatewayIntents = GatewayIntents.None }));
+builder.Services.AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
+	{ GatewayIntents = GatewayIntents.None }));
 #pragma warning restore CA2000
 builder.Services.AddTransient<DiscordRestClient>();
 
@@ -74,16 +76,26 @@ builder.Services.AddTransient<DiscordRestClient>();
 
 // Add local services
 builder.Services.AddSingleton<IDiscordClientRunner, DiscordClientRunner>();
-builder.Services.AddSingleton<InteractionService>(services => new InteractionService(services.GetRequiredService<DiscordSocketClient>()));
+builder.Services.AddSingleton<InteractionService>(services =>
+	new InteractionService(services.GetRequiredService<DiscordSocketClient>()));
 builder.Services.AddSingleton<InteractionHandler>();
 builder.Services.AddSingleton<DotaService>();
 builder.Services.AddSingleton<DiscordOAuthService>();
 builder.Services.AddSingleton<PairingService>();
+builder.Services.AddScoped<IPointsCalculatorService, PointsCalculatorService>();
+builder.Services.AddScoped<IPointsJobService, PointsJobService>();
+builder.Services.AddScoped<IPointsService, PointsService>();
+builder.Services.AddDbContext<ApplicationDbContext>();
+
+// Add local controllers
+builder.Services.AddControllers();
 
 // Build and run app
 var app = builder.Build();
-
-app.MapGet("/pair", () => Results.Redirect(DiscordOAuthUrlHelper.GenerateRedirectUrl(discordOAuthOptions.ClientId, discordOAuthOptions.RedirectUrl).ToString()));
+app.MapControllers();
+app.MapGet("/pair",
+	() => Results.Redirect(DiscordOAuthUrlHelper
+		.GenerateRedirectUrl(discordOAuthOptions.ClientId, discordOAuthOptions.RedirectUrl).ToString()));
 
 app.MapGet("/pair-callback", async ([FromServices] PairingService pairingService, HttpContext context) =>
 {

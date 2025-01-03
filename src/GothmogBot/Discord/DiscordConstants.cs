@@ -10,5 +10,10 @@ public static class DiscordConstants
 	public const ulong TwitchTier3SubscriberRoleId = 707480013406076951;
 	public const ulong CustomMegaCuckRoleId = 948486251315609610;
 
+	public const int PointsPerMessage = 10;
+	public const int HourlyPointsCap = 30;
+	public const int DailyPointsCap = 120;
+	public const int WeeklyPointsCap = 480;
+
 	public static ImmutableList<ulong> AllRoles { get; } = ImmutableList.Create(YouTubeTier2RoleId, TwitchTier3SubscriberRoleId, CustomMegaCuckRoleId);
 }
